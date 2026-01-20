@@ -22,8 +22,10 @@ def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame:
 	if dataframe is None:
 		raise ValueError("Dataframe sin especificar.")
 
+	if dataframe.empty:
+		raise ValueError("Dataframe vacío.")
+
 	records = dataframe.shape[0]
-	attributes = dataframe.shape[1]
 	# print(f"Registros: {records}\nColumns: {attributes}\n")
 
 	columns = dataframe.columns.values
