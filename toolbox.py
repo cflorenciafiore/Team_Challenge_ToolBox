@@ -4,24 +4,58 @@ import pandas as pd
 import scipy
 
 
-def describe_df(dataframe):
+def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame:
 	"""
-	Esta función debe recibir como argumento un dataframe y debe devolver una
-	dataframe como el de la imagen (NO el de la imagen). Es decir, un dataframe
-	que tenga una columna por cada variable del dataframe original, y como filas
-	los tipos de dichas variables, el tanto por ciento de valores nulos o
-	missings, los valores únicos y el porcentaje de cardinalidad.
+	Calcula y describe la calidad de datos de cada columna de un dataframe.
 
+	Entre los datos de calidad que se calculan encontramos el porcentaje de 
+	cardinalidad, el porcentaje de valores faltantes, los valores únicos y
+	el tipo de dato de las columnas.
 
 	Args:
 		dataframe: pd.DataFrame
 			un dataframe
 
-
 	Returns:
-		None
+		pd.DataFrame
 	"""
-	pass
+	if dataframe is None:
+		raise ValueError("Dataframe sin especificar.")
+
+	records = dataframe.shape[0]
+	attributes = dataframe.shape[1]
+	# print(f"Registros: {records}\nColumns: {attributes}\n")
+
+	columns = dataframe.columns.values
+	index = pd.Index(data=columns, dtype=str)
+
+
+	data_type = pd.Series(data=dataframe.dtypes,
+						  index=index,
+						  name="DATA_TYPE")
+
+	missing = (dataframe.isna().sum()/records) * 100
+	missing = pd.Series(data=round(missing, 1).values,
+						index=index,
+						name="MISSINGS (%)")
+
+	unique = pd.Series(data=dataframe.nunique().values,
+					   index=index,
+					   name="UNIQUE_VALUES")
+
+	cardinality = pd.Series(data=round(unique/records * 100, 2),
+							index=index,
+							name="CARDIN (%)")
+
+	data = {
+		data_type.name: data_type,
+		missing.name: missing,
+		unique.name: unique,
+		cardinality.name: cardinality
+	}
+
+	df = pd.DataFrame(data, index=index)
+	return df.T
 
 
 def tipifica_variables(dataframe, umbral_categorica, umbral_continua):
