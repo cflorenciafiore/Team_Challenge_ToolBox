@@ -4,7 +4,7 @@ import pandas as pd
 import scipy
 
 
-def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame:
+def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame: # {{{
 	"""
 	Calcula y describe la calidad de datos de cada columna de un dataframe.
 
@@ -58,15 +58,24 @@ def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 	df = pd.DataFrame(data, index=index)
 	return df.T
+# }}}
 
 
-def tipifica_variables(dataframe, umbral_categorica, umbral_continua):
+def tipifica_variables(dataframe: pd.DataFrame,
+					   umbral_categoria: int,
+					   umbral_continua: float) -> pd.DataFrame: # {{{
 	"""
-	Esta función debe recibir como argumento un dataframe, un entero
-	(`umbral_categoria`) y un float (`umbral_continua`). La función debe
-	devolver un dataframe con dos columnas "nombre_variable", "tipo_sugerido"
-	que tendrá tantas filas como columnas el dataframe. En cada fila irá el
-	nombre de una de las columnas y una sugerencia del tipo de variable.
+	Calcula la cardinalidad de las columnas y categoriza las columnas del
+	dataframe siguiendo las siguientes reglas:
+		- Sí la cardinalidad de la columna es igual a dos se categoriza como
+		  binaria.
+		- Sí la cardinalidad de la columna es menor a umbral_categoria se asigna
+		  como categórica.
+		- Sí la cardinalidad de la columna es mayor a umbral_categoria:
+			- Se asigna numérica discreta si la cardinalidad es menor a
+			  umbral_continua.
+			- Se asigna numérica contínua sí la cardinalidad es mayor o igual a
+			  umbral_continua.
 
 
 	Args:
@@ -74,29 +83,61 @@ def tipifica_variables(dataframe, umbral_categorica, umbral_continua):
 			un dataframe
 
 		umbral_categorica: int
-			unmbral que permite identificar si una variables
-
-			Tener en cuenta que:
-			- Si la cardinalidad es 2, asignara "Binaria".
-			- Si la cardinalidad es menor que `umbral_categoria` asignara
-			  "Categórica"
-			- Si la cardinalidad es mayor o igual que `umbral_categoria`,
-			  entonces entra en juego el tercer argumento `umbral_continua`
+			unmbral que permite identificar sí una variable es categórica.
 
 		umbral_continua: float
-			umbral que permite identificar si una variable es númerica continua
+			umbral que permite identificar sí una variable es númerica continua
 			o discreta.
 
-			Tener en cuenta que:
-			- Si además el porcentaje de cardinalidad es superior o igual a
-			  `umbral_continua`, asigna "Numerica Continua"
-			- En caso contrario, asigna "Numerica Discreta"
-
-
 	Return:
-		None
+		pd.DataFrame
 	"""
-	pass
+	if dataframe is None:
+		raise ValueError("Dataframe sin especificar.")
+
+	if dataframe.empty:
+		raise ValueError("Dataframe vacío.")
+	
+	if umbral_categoria is None:
+		raise ValueError("Umbral categoría sin especificar.")
+
+	if umbral_continua is None:
+		raise ValueError("Umbral contínua sin especificar.")
+
+	if umbral_categoria > umbral_continua:
+		raise ValueError("Umbral categoría no puede ser mayor a umbral contínua.")
+
+	size = dataframe.shape[0]
+
+	unique = dataframe.nunique()
+	unique.name = "unique"
+
+	is_binary = unique == 2
+	binary = pd.DataFrame(data={ "category": "Binaria" },
+						  index=unique[is_binary].index)
+
+	cardinality = pd.Series(data=unique/size * 100,
+							name="cardinality")
+
+	is_category = cardinality[~is_binary] < umbral_categoria
+	is_continuous = cardinality[~is_binary] >= umbral_continua
+	categorized = np.select(
+			[is_category, is_continuous],
+			["Categórica", "Numérica Continua"],
+			"Numérica Discreta"
+	)
+
+	data = pd.concat([
+			binary,
+			pd.Series(categorized,
+					  index=cardinality[~is_binary].index,
+					  name="category")
+	])
+	data["cardinality"] = cardinality.round(2)
+
+
+	return data.sort_index()
+# }}}
 
 
 def get_features_num_regression(dataframe,
