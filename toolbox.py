@@ -188,6 +188,57 @@ def get_features_num_regression(dataframe,
 	"""
 	pass
 
+def get_features_num_regression(dataframe, target_col, umbral_corr=0.5, pvalue=None):
+
+    # Compruebo que df es un df
+    if not isinstance(dataframe, pd.DataFrame):
+        print("Error: el argumento 'df' no es un DataFrame.")
+        return None
+    
+    # Compruebo que el df no esté vacío
+    if dataframe.empty:
+        print("Error: el DataFrame está vacío.")
+        return None
+    
+    # Compruebo que target_col existe en el df
+    if target_col not in dataframe.columns:
+        print("Error: la columna '{target_col}' no existe en el DataFrame.")
+        return None
+
+    # Compruebo que target_col es numérica
+    if not pd.api.types.is_numeric_dtype(dataframe[target_col]):
+        print("Error: la columna '{target_col}' no es numérica, no puede ser target de la regresión.")
+        return None
+
+    # Selecciono las columnas numéricas
+    numeric_cols = dataframe.select_dtypes(include="number")
+
+    # Exluyo al target de las columnas numéricas
+    numeric_features = numeric_cols.columns.drop(target_col)
+
+    # Compruebo que target_col no sea la única columna numérica
+    if len(numeric_features) == 0:
+        print("No hay columnas numéricas para analizar.")
+        return None
+    
+    # Calculo correlaciones para filtrar
+    selected_features = []
+
+    for col in numeric_features:
+        corr = dataframe[col].corr(dataframe[target_col])
+        if abs(corr) >= umbral_corr:
+            selected_features.append(col)
+
+    # Si me pasan pvalue, aplico test de hipótesis para filtrar aún más
+    if pvalue is not None:
+        final_features = []
+        for col in selected_features:
+            corr, pvalue_test = pearsonr(dataframe[col], dataframe[target_col])
+            if pvalue_test <= pvalue:
+                final_features.append(col)
+        return final_features
+    else:
+        return selected_features
 
 def plot_features_num_regression(dataframe,
 								 target_col="",
@@ -245,6 +296,71 @@ def plot_features_num_regression(dataframe,
 	"""
 	pass
 
+def plot_features_num_regression(dataframe, target_col, columns=[], umbral_corr=0, pvalue=None):
+
+    # Compruebo que df es un df
+    if not isinstance(dataframe, pd.DataFrame):
+        print("Error: el argumento 'df' no es un DataFrame.")
+        return None
+    
+    # Compruebo que el df no esté vacío
+    if dataframe.empty:
+        print("Error: el DataFrame está vacío.")
+        return None
+    
+    # Compruebo que target_col existe en el df
+    if target_col not in dataframe.columns:
+        print("Error: la columna '{target_col}' no existe en el DataFrame.")
+        return None
+
+    # Compruebo que target_col es numérica
+    if not pd.api.types.is_numeric_dtype(dataframe[target_col]):
+        print("Error: la columna '{target_col}' no es numérica, no puede ser target de la regresión.")
+        return None
+
+    # Selecciono las columnas numéricas
+    numeric_cols = dataframe.select_dtypes(include="number")
+
+    # Exluyo al target de las columnas numéricas
+    numeric_features = numeric_cols.columns.drop(target_col)
+
+    # Compruebo que target_col no sea la única columna numérica
+    if len(numeric_features) == 0:
+        print("No hay columnas numéricas para analizar.")
+        return None
+    
+    # Si no me pasan ninguna columna, uso todas las columnas numéricas (menos el target)
+    if not columns:
+        columns = list(numeric_features)
+
+    # Calculo correlaciones para filtrar
+    selected_features = []
+    
+    for col in columns:
+        corr = dataframe[col].corr(dataframe[target_col])
+        if abs(corr) >= umbral_corr:
+            selected_features.append(col)
+
+    # Si me pasan pvalue, aplico test de hipótesis para filtrar aún más
+    if pvalue is not None:
+        final_features = []
+        for col in selected_features:
+            corr, pvalue_test = pearsonr(dataframe[col], dataframe[target_col])
+            if pvalue_test <= pvalue:
+                final_features.append(col)
+    else:
+        final_features = selected_features
+    
+    # Incluyo al target en las columnas finales
+    final_features = [target_col] + final_features
+
+    #Dibujo los pairplots
+    max_cols = 5
+
+    for i in range (0, len(final_features), max_cols):
+        features_to_plot = final_features[i:i + max_cols]
+        sns.pairplot(dataframe[features_to_plot])
+        plt.show()
 
 def get_features_cat_regression(dataframe,
 								target_col,
