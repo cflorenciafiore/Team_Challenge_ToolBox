@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy
+import seaborn as sns
+from scipy.stats import pearsonr
 
 
 def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame: # {{{
@@ -113,7 +114,7 @@ def tipifica_variables(dataframe: pd.DataFrame,
 	unique.name = "unique"
 
 	is_binary = unique == 2
-	binary = pd.DataFrame(data={ "category": "Binaria" },
+	binary = pd.DataFrame(data={ "nombre_variable": "Binaria" },
 						  index=unique[is_binary].index)
 
 	cardinality = pd.Series(data=unique/size * 100,
@@ -131,62 +132,13 @@ def tipifica_variables(dataframe: pd.DataFrame,
 			binary,
 			pd.Series(categorized,
 					  index=cardinality[~is_binary].index,
-					  name="category")
+					  name="nombre_variable")
 	])
-	data["cardinality"] = cardinality.round(2)
-
+	data["tipo_sugerido"] = cardinality.round(2)
 
 	return data.sort_index()
 # }}}
 
-
-def get_features_num_regression(dataframe,
-								target_col,
-								umbral_corr=0.5,
-								pvalue=None):
-	"""
-	Esta función recibe **como argumentos un dataframe**, el nombre de una de
-	las columnas del mismo (argumento **'target_col'**), que debería ser **el
-	target de un hipotético modelo de regresión**, es decir **debe ser una
-	variable numérica continua o discreta pero con alta cardinalidad**, además
-	de un **argumento 'umbral_corr'**, de tipo float que debe estar entre 0 y 1
-	y **una variable float "pvalue"** cuyo valor debe ser por defecto "None".
-
-	La función debe **devolver una lista con las columnas numéricas del
-	dataframe cuya correlación con la columna designada por "target_col" sea
-	superior en valor absoluto al valor dado por "umbral_corr"**. Además si la
-	variable "pvalue" es distinta de None, **sólo devolvera las columnas
-	numéricas cuya correlación supere el valor indicado y además supere el test
-	de hipótesis con significación mayor o igual a 1-pvalue**.
-
-	La función debe hacer todas las comprobaciones necesarias para no dar error
-	como consecuecia de los valores de entrada. Es decir hará un check de los
-	valores asignados a los argumentos de entrada y si estos no son adecuados
-	debe retornar None y printar por pantalla la razón de este comportamiento.
-	Ojo entre las comprobaciones debe estar que "target_col" hace referencia a
-	una variable numérica continua del dataframe.
-
-
-	Args:
-		dataframe: pd.DataFrame
-			un dataframe
-
-		target_col: str
-			columna de dataframe. Debe ser una variable numérica continua o
-			discreta pero con alta cardinalidad
-
-		umbral_corr: float, default 0.5
-			umbral de correlación que se debe tener con target_col
-
-		pvalue: float, default None
-			valor de significación en test de hipótesis si cumple con
-			umbral_corr
-
-
-	Return:
-		None
-	"""
-	pass
 
 def get_features_num_regression(dataframe, target_col, umbral_corr=0.5, pvalue=None):
 
@@ -209,12 +161,22 @@ def get_features_num_regression(dataframe, target_col, umbral_corr=0.5, pvalue=N
     if not pd.api.types.is_numeric_dtype(dataframe[target_col]):
         print("Error: la columna '{target_col}' no es numérica, no puede ser target de la regresión.")
         return None
+    
+    if not isinstance(umbral_corr, (int, float)) or not (0 <= float(umbral_corr) <= 1):
+        print("Error: 'umbral_corr' debe ser un float entre 0 y 1 (incluidos).")
+        return None
+    umbral_corr = float(umbral_corr)
 
+    if pvalue is not None:
+        if not isinstance(pvalue, (int, float)) or not (0 < float(pvalue) <= 1):
+            print("Error: 'pvalue' debe ser None o un float en el rango (0, 1].")
+            return None
+        pvalue = float(pvalue)
     # Selecciono las columnas numéricas
-    numeric_cols = dataframe.select_dtypes(include="number")
+    numeric_cols = dataframe.select_dtypes(include="number").columns
 
     # Exluyo al target de las columnas numéricas
-    numeric_features = numeric_cols.columns.drop(target_col)
+    numeric_features = numeric_cols.drop(target_col)
 
     # Compruebo que target_col no sea la única columna numérica
     if len(numeric_features) == 0:
@@ -225,7 +187,9 @@ def get_features_num_regression(dataframe, target_col, umbral_corr=0.5, pvalue=N
     selected_features = []
 
     for col in numeric_features:
-        corr = dataframe[col].corr(dataframe[target_col])
+        tmp = dataframe[[col, target_col]].dropna()
+        corr = tmp[col].corr(tmp[target_col])
+
         if abs(corr) >= umbral_corr:
             selected_features.append(col)
 
@@ -240,63 +204,7 @@ def get_features_num_regression(dataframe, target_col, umbral_corr=0.5, pvalue=N
     else:
         return selected_features
 
-def plot_features_num_regression(dataframe,
-								 target_col="",
-								 columns=[],
-								 umbral_corr=0,
-								 pvalue=None):
-	"""
-	Esta función recibe un dataframe, una argumento "target_col" con valor por
-	defecto "", una lista de strings ("columns") cuyo valor por defecto es la
-	lista vacía, un valor de correlación ("umbral_corr", con valor 0 por
-	defecto) y un argumento ("pvalue") con valor "None" por defecto.
-
-	Si la lista no está vacía, la función pintará una pairplot del dataframe
-	considerando la columna designada por "target_col" y aquellas incluidas en
-	"column" que cumplan que su correlación con "target_col" es superior en
-	valor absoluto a "umbral_corr", y que, en el caso de ser pvalue diferente de
-	"None", además cumplan el test de correlación para el nivel 1-pvalue de
-	significación estadística. La función devolverá los valores de "columns" que
-	cumplan con las condiciones anteriores. 
-
-	EXTRA: Se valorará adicionalmente el hecho de que si la lista de columnas a
-	pintar es grande se pinten varios pairplot con un máximo de cinco columnas
-	en cada pairplot (siendo siempre una de ellas la indicada por "target_col")
-
-	Si la lista está vacía, entonces la función igualará "columns" a las
-	variables numéricas del dataframe y se comportará como se describe en el
-	párrafo anterior.
-
-	De igual manera que en la función descrita anteriormente deberá hacer un
-	check de los valores de entrada y comportarse como se describe en el último
-	párrafo de la función `get_features_num_regresion`
-
-
-	Args:
-		dataframe: pd.DataFrame
-			un dataframe
-
-		target_col: str, default ""
-			columna de dataframe. Debe ser una variable numérica continua o
-			discreta pero con alta cardinalidad
-
-		columns: list, default []
-			listado de columnas de dataframe
-
-		umbral_corr: float, default 0
-			umbral de correlación que se debe tener entre columns y target_col
-
-		pvalue: float, default None
-			valor de significación en test de hipótesis si cumple con
-			umbral_corr entre columns y target_col
-
-
-	Return:
-		None
-	"""
-	pass
-
-def plot_features_num_regression(dataframe, target_col, columns=[], umbral_corr=0, pvalue=None):
+def plot_features_num_regression(dataframe, target_col="", columns=[], umbral_corr=0, pvalue=None):
 
     # Compruebo que df es un df
     if not isinstance(dataframe, pd.DataFrame):
@@ -312,11 +220,26 @@ def plot_features_num_regression(dataframe, target_col, columns=[], umbral_corr=
     if target_col not in dataframe.columns:
         print("Error: la columna '{target_col}' no existe en el DataFrame.")
         return None
+    # Compruebo que target_col existe en el df
+    if target_col not in dataframe.columns:
+        print("Error: la columna '{target_col}' no existe en el DataFrame.")
+        return None
 
     # Compruebo que target_col es numérica
     if not pd.api.types.is_numeric_dtype(dataframe[target_col]):
         print("Error: la columna '{target_col}' no es numérica, no puede ser target de la regresión.")
         return None
+    
+    if not isinstance(umbral_corr, (int, float)) or not (0 <= float(umbral_corr) <= 1):
+        print("Error: 'umbral_corr' debe ser un float entre 0 y 1 (incluidos).")
+        return None
+    umbral_corr = float(umbral_corr)
+
+    if pvalue is not None:
+        if not isinstance(pvalue, (int, float)) or not (0 < float(pvalue) <= 1):
+            print("Error: 'pvalue' debe ser None o un float en el rango (0, 1].")
+            return None
+        pvalue = float(pvalue)
 
     # Selecciono las columnas numéricas
     numeric_cols = dataframe.select_dtypes(include="number")
@@ -335,7 +258,7 @@ def plot_features_num_regression(dataframe, target_col, columns=[], umbral_corr=
 
     # Calculo correlaciones para filtrar
     selected_features = []
-    
+
     for col in columns:
         corr = dataframe[col].corr(dataframe[target_col])
         if abs(corr) >= umbral_corr:
@@ -361,6 +284,8 @@ def plot_features_num_regression(dataframe, target_col, columns=[], umbral_corr=
         features_to_plot = final_features[i:i + max_cols]
         sns.pairplot(dataframe[features_to_plot])
         plt.show()
+
+    return selected_features
 
 def get_features_cat_regression(dataframe,
 								target_col,
