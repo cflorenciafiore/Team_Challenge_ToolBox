@@ -62,86 +62,86 @@ def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame: # {{{
 # }}}
 
 
-def tipifica_variables(dataframe: pd.DataFrame,
-					   umbral_categoria: int,
-					   umbral_continua: float) -> pd.DataFrame: # {{{
-	"""
-	Calcula la cardinalidad de las columnas y categoriza las columnas del
-	dataframe siguiendo las siguientes reglas:
-		- Sí la cardinalidad de la columna es igual a dos se categoriza como
-		  binaria.
-		- Sí la cardinalidad de la columna es menor a umbral_categoria se asigna
-		  como categórica.
-		- Sí la cardinalidad de la columna es mayor a umbral_categoria:
-			- Se asigna numérica discreta si la cardinalidad es menor a
-			  umbral_continua.
-			- Se asigna numérica contínua sí la cardinalidad es mayor o igual a
-			  umbral_continua.
+def tipifica_variables(
+    dataframe: pd.DataFrame,
+    umbral_categoria: int,
+    umbral_continua: float
+) -> pd.DataFrame:
+    """
+    Calcula la cardinalidad de las columnas y categoriza las columnas del
+    dataframe siguiendo estas reglas:
 
+    - Si la cardinalidad (nº de valores únicos) de la columna es igual a 2,
+      se categoriza como binaria.
+    - Si la cardinalidad es menor que umbral_categoria, se asigna como categórica.
+    - Si la cardinalidad es mayor o igual que umbral_categoria:
+        - Se asigna numérica continua si el % de cardinalidad (valores únicos / filas * 100)
+          es mayor o igual que umbral_continua.
+        - En caso contrario, se asigna numérica discreta.
 
-	Args:
-		dataframe: pd.DataFrame
-			un dataframe
+    Args:
+        dataframe (pd.DataFrame): DataFrame de entrada.
+        umbral_categoria (int): Umbral de cardinalidad para considerar una variable como categórica.
+        umbral_continua (float): Umbral (en %) para considerar una variable numérica como continua.
 
-		umbral_categorica: int
-			unmbral que permite identificar sí una variable es categórica.
+    Returns:
+        pd.DataFrame: DataFrame con columnas ["nombre_variable", "tipo_sugerido"].
+    """
 
-		umbral_continua: float
-			umbral que permite identificar sí una variable es númerica continua
-			o discreta.
+    # -----------------------------
+    # Validaciones de entrada
+    # -----------------------------
+    if dataframe is None:
+        raise ValueError("Dataframe sin especificar.")
 
-	Return:
-		pd.DataFrame
-	"""
-	if dataframe is None:
-		raise ValueError("Dataframe sin especificar.")
+    if dataframe.empty:
+        raise ValueError("Dataframe vacío.")
 
-	if dataframe.empty:
-		raise ValueError("Dataframe vacío.")
-	
-	if umbral_categoria is None:
-		raise ValueError("Umbral categoría sin especificar.")
+    if umbral_categoria is None:
+        raise ValueError("Umbral categoría sin especificar.")
 
-	if umbral_continua is None:
-		raise ValueError("Umbral contínua sin especificar.")
+    if umbral_continua is None:
+        raise ValueError("Umbral continua sin especificar.")
 
-	if umbral_categoria > umbral_continua:
-		raise ValueError("Umbral categoría no puede ser mayor a umbral contínua.")
+    # Número de filas (para calcular el % de cardinalidad)
+    n_rows = len(dataframe)
 
-	size = dataframe.shape[0]
+    # Cardinalidad por columna ignoramos los NaN
+    unique_values = dataframe.nunique(dropna=True)
 
-	unique = dataframe.nunique()
-	unique.name = "unique"
+    # Porcentaje de cardinalidad por columna
+    cardin_pct = (unique_values / n_rows) * 100
 
-	is_binary = unique == 2
-	binary = pd.DataFrame(data={ "nombre_variable": "Binaria" },
-						  index=unique[is_binary].index)
+    tipos = []
 
-	cardinality = pd.Series(data=unique/size * 100,
-							name="cardinality")
+    # Recorremos columnas del dataframe
+    for col in dataframe.columns:
+        card = int(unique_values[col])   # cardinalidad total
+        pct = float(cardin_pct[col])     # cardinalidad relativa en %
 
-	is_category = cardinality[~is_binary] < umbral_categoria
-	is_continuous = cardinality[~is_binary] >= umbral_continua
-	categorized = np.select(
-			[is_category, is_continuous],
-			["Categórica", "Numérica Continua"],
-			"Numérica Discreta"
-	)
+        # binaria si tiene exactamente 2 valores únicos
+        if card == 2:
+            tipo = "Binaria"
 
-	data = pd.concat([
-			binary,
-			pd.Series(categorized,
-					  index=cardinality[~is_binary].index,
-					  name="nombre_variable")
-	])
-	data["tipo_sugerido"] = cardinality.round(2)
+        # categórica si la cardinalidad es menor al umbral de categoría
+        elif card < umbral_categoria:
+            tipo = "Categorica"
 
-	return data.sort_index()
-# }}}
+        # si no es categórica, se decide entre continua/discreta por % cardinalidad
+        else:
+            if pct >= umbral_continua:
+                tipo = "Numerica Continua"
+            else:
+                tipo = "Numerica Discreta"
+
+        tipos.append((col, tipo))
+
+    # Devolvemos un dataframe con el resultado
+    return pd.DataFrame(tipos, columns=["nombre_variable", "tipo_sugerido"])
 
 
 def get_features_num_regression(dataframe, target_col, umbral_corr=0.5, pvalue=None):
-
+	
     # Compruebo que df es un df
     if not isinstance(dataframe, pd.DataFrame):
         print("Error: el argumento 'df' no es un DataFrame.")
