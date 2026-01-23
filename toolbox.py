@@ -2,6 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy
+import seaborn as sns
+import warnings
+
+warnings.filterwarnings('ignore')
+
 
 
 def describe_df(dataframe: pd.DataFrame) -> pd.DataFrame: # {{{
@@ -362,10 +367,10 @@ def plot_features_num_regression(dataframe, target_col, columns=[], umbral_corr=
         sns.pairplot(dataframe[features_to_plot])
         plt.show()
 
-def get_features_cat_regression(dataframe,
-								target_col,
-								pvalue=0.05):
-	"""
+
+
+def get_features_cat_regression(df, target_col='', pvalue=0.05):
+    """
 	Esta función recibe como **argumentos un dataframe**, el nombre de **una de las
 	columnas del mismo (argumento 'target_col')**, que **debería ser el target de un
 	hipotético modelo de regresión**, es decir debe ser **una variable numérica
@@ -384,33 +389,129 @@ def get_features_cat_regression(dataframe,
 	None y printar por pantalla la razón de este comportamiento. Ojo entre las
 	comprobaciones debe estar que "target_col" hace referencia a una variable
 	numérica continua del dataframe.
+    
+    Identifica variables categóricas significativamente relacionadas con un target numérico usando ANOVA.
+
+    Argumentos:
+    df (pd.DataFrame): DataFrame con los datos a analizar.
+    target_col (str): Nombre de la columna objetivo (variable numérica continua o discreta con alta cardinalidad).
+    pvalue (float): Nivel de significación estadística (por defecto 0.05).
+
+    Retorna:
+    list: Lista con los nombres de las columnas categóricas que tienen relación estadísticamente significativa 
+          con target_col. Retorna None si hay errores en los argumentos de entrada.
+    """
+    # Check 1: Verificar que df es un DataFrame
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El primer argumento debe ser un pandas DataFrame.")
+        return None
+    
+    # Check 2: Verificar que df no está vacío
+    if df.empty:
+        print("Error: El DataFrame está vacío.")
+        return None
+    
+    # Check 3: Verificar que target_col es un string
+    if not isinstance(target_col, str):
+        print("Error: El argumento 'target_col' debe ser un string.")
+        return None
+    
+    # Check 4: Verificar que target_col no está vacío
+    if target_col == '':
+        print("Error: El argumento 'target_col' no puede estar vacío.")
+        return None
+    
+    # Check 5: Verificar que target_col existe en el DataFrame
+    if target_col not in df.columns:
+        print(f"Error: La columna '{target_col}' no existe en el DataFrame.")
+        return None
+    
+    # Check 6: Verificar que target_col es numérica
+    if df[target_col].dtype not in ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
+        print(f"Error: La columna '{target_col}' debe ser numérica (continua o discreta con alta cardinalidad).")
+        return None
+    
+    # Check 7: Verificar que pvalue está en el rango correcto
+    if not isinstance(pvalue, (int, float)) or pvalue <= 0 or pvalue >= 1:
+        print("Error: El argumento 'pvalue' debe ser un número entre 0 y 1 (exclusivo).")
+        return None
+    
+    # Check 8: Verificar que target_col tiene suficiente variabilidad (no es constante)
+    if df[target_col].nunique() <= 1:
+        print(f"Error: La columna '{target_col}' debe tener más de un valor único para realizar análisis de regresión.")
+        return None
+    
+    # Identificar columnas categóricas (excluyendo el target)
+    categorical_columns = []
+    
+    for col in df.columns:
+        if col == target_col:
+            continue
+        
+        # Una columna es categórica si:
+        # 1. Es de tipo object o category
+        # 2. Es numérica pero con pocos valores únicos (típicamente <= 10)
+        if df[col].dtype == 'object' or df[col].dtype.name == 'category':
+            categorical_columns.append(col)
+        elif df[col].dtype in ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
+            if df[col].nunique() <= 10:
+                categorical_columns.append(col)
+    
+    # Si no hay columnas categóricas, retornar lista vacía
+    if len(categorical_columns) == 0:
+        print("Advertencia: No se encontraron columnas categóricas en el DataFrame.")
+        return []
+    
+    # Lista para almacenar las columnas significativas
+    significant_features = []
+    
+    # Realizar test ANOVA para cada columna categórica
+    for col in categorical_columns:
+        try:
+            # Eliminar filas con valores nulos en la columna categórica o en el target
+            df_clean = df[[col, target_col]].dropna()
+            
+            # Verificar que hay suficientes datos después de eliminar nulos
+            if len(df_clean) < 3:
+                continue
+            
+            # Obtener grupos (categorías únicas)
+            groups = df_clean[col].unique()
+            
+            # Necesitamos al menos 2 grupos para ANOVA
+            if len(groups) < 2:
+                continue
+            
+            # Crear lista de arrays con los valores del target para cada grupo
+            group_data = []
+            for group in groups:
+                group_values = df_clean[df_clean[col] == group][target_col].values
+                # Solo incluir grupos con al menos 1 observación
+                if len(group_values) > 0:
+                    group_data.append(group_values)
+            
+            # Verificar que tenemos al menos 2 grupos con datos
+            if len(group_data) < 2:
+                continue
+            
+            # Realizar test ANOVA (one-way)
+            # f_statistic: estadístico F
+            # p_value: p-valor del test
+            f_statistic, p_value = stats.f_oneway(*group_data)
+            
+            # Si el p-valor es menor que el nivel de significación, la relación es significativa
+            if p_value < pvalue:
+                significant_features.append(col)
+                
+        except Exception as e:
+            # Si hay algún error con esta columna, continuar con la siguiente
+            continue
+    
+    return significant_features
 
 
-	Args:
-		dataframe: pd.DataFrame
-			un dataframe
-
-		target_col: str
-			columna de dataframe. Debe ser una variable numérica continua o
-			discreta pero con alta cardinalidad
-
-		pvalue: float, default 0.05
-			valor de significación en test de hipótesis
-
-
-	Return:
-		None
-	"""
-	pass
-
-
-
-def plot_features_cat_regression(dataframe,
-								 target_col="",
-								 columns=[],
-								 pvalue=0.05,
-								 with_individual_plot=False):
-	"""
+def plot_features_cat_regression(df, target_col='', columns=[], pvalue=0.05, with_individual_plot=False):
+    """
 	Esta función recibe un dataframe, una argumento "target_col" con valor por
 	defecto "", una lista de strings ("columns") cuyo valor por defecto es la
 	lista vacía, un argumento ("pvalue") con valor 0.05 por defecto y un
@@ -419,7 +520,7 @@ def plot_features_cat_regression(dataframe,
 	Si la lista no está vacía, la función pintará los histogramas agrupados de
 	la variable "target_col" para cada uno de los valores de las variables
 	categóricas incluidas en columns que cumplan que su test de relación con
-	"target_col" es significatio para el nivel 1-pvalue de significación
+	"target_col" es significativo para el nivel 1-pvalue de significación
 	estadística. La función devolverá los valores de "columns" que cumplan con
 	las condiciones anteriores.
 
@@ -431,25 +532,204 @@ def plot_features_cat_regression(dataframe,
 	check de los valores de entrada y comportarse como se describe en el último
 	párrafo de la función `get_features_cat_regression`.
 
+    Visualiza la relación entre variables categóricas y un target numérico mediante histogramas agrupados.
 
-	Args:
-		dataframe: pd.DataFrame
-			un dataframe
+    Argumentos:
+    df (pd.DataFrame): DataFrame con los datos a analizar.
+    target_col (str): Nombre de la columna objetivo (variable numérica).
+    columns (list): Lista de nombres de columnas categóricas a visualizar. Si está vacía, se usan todas las categóricas (por defecto []).
+    pvalue (float): Nivel de significación estadística para filtrar variables (por defecto 0.05).
+    with_individual_plot (bool): Si True, crea un plot individual para cada variable. Si False, crea subplots (por defecto False).
 
-		target_col: str, default ""
-			columna de dataframe. Debe ser una variable numérica continua o
-			discreta pero con alta cardinalidad
-
-		columns: list, default []
-			listado de columnas categóricas del dataframe
-
-		pvalue: float, default 0.05
-			valor de significación en test de hipótesis entre target_col y
-			columns
-
-		with_individual_plot: bool, default False
-			valor lógico para agrupar los plots de los histogramas o no
-
-	Return:
-		None
-	"""
+    Retorna:
+    list: Lista con los nombres de las columnas categóricas que cumplen el criterio de significación estadística.
+          Retorna None si hay errores en los argumentos de entrada.
+    """
+    # Check 1: Verificar que df es un DataFrame
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El primer argumento debe ser un pandas DataFrame.")
+        return None
+    
+    # Check 2: Verificar que df no está vacío
+    if df.empty:
+        print("Error: El DataFrame está vacío.")
+        return None
+    
+    # Check 3: Verificar que target_col es un string
+    if not isinstance(target_col, str):
+        print("Error: El argumento 'target_col' debe ser un string.")
+        return None
+    
+    # Check 4: Verificar que target_col no está vacío
+    if target_col == '':
+        print("Error: El argumento 'target_col' no puede estar vacío.")
+        return None
+    
+    # Check 5: Verificar que target_col existe en el DataFrame
+    if target_col not in df.columns:
+        print(f"Error: La columna '{target_col}' no existe en el DataFrame.")
+        return None
+    
+    # Check 6: Verificar que target_col es numérica
+    if df[target_col].dtype not in ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
+        print(f"Error: La columna '{target_col}' debe ser numérica (continua o discreta con alta cardinalidad).")
+        return None
+    
+    # Check 7: Verificar que columns es una lista
+    if not isinstance(columns, list):
+        print("Error: El argumento 'columns' debe ser una lista.")
+        return None
+    
+    # Check 8: Verificar que pvalue está en el rango correcto
+    if not isinstance(pvalue, (int, float)) or pvalue <= 0 or pvalue >= 1:
+        print("Error: El argumento 'pvalue' debe ser un número entre 0 y 1 (exclusivo).")
+        return None
+    
+    # Check 9: Verificar que with_individual_plot es booleano
+    if not isinstance(with_individual_plot, bool):
+        print("Error: El argumento 'with_individual_plot' debe ser un booleano (True o False).")
+        return None
+    
+    # Check 10: Verificar que target_col tiene suficiente variabilidad
+    if df[target_col].nunique() <= 1:
+        print(f"Error: La columna '{target_col}' debe tener más de un valor único para realizar análisis de regresión.")
+        return None
+    
+    # Si columns está vacío, identificar todas las columnas categóricas
+    if len(columns) == 0:
+        columns = []
+        for col in df.columns:
+            if col == target_col:
+                continue
+            
+            # Una columna es categórica si es object, category o numérica con pocos valores únicos
+            if df[col].dtype == 'object' or df[col].dtype.name == 'category':
+                columns.append(col)
+            elif df[col].dtype in ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
+                if df[col].nunique() <= 10:
+                    columns.append(col)
+    
+    # Check 11: Verificar que todas las columnas en 'columns' existen en el DataFrame
+    for col in columns:
+        if col not in df.columns:
+            print(f"Error: La columna '{col}' especificada en 'columns' no existe en el DataFrame.")
+            return None
+    
+    # Si no hay columnas categóricas, retornar lista vacía
+    if len(columns) == 0:
+        print("Advertencia: No se encontraron columnas categóricas para visualizar.")
+        return []
+    
+    # Filtrar columnas usando get_features_cat_regression
+    significant_features = []
+    
+    for col in columns:
+        try:
+            # Eliminar filas con valores nulos
+            df_clean = df[[col, target_col]].dropna()
+            
+            # Verificar que hay suficientes datos
+            if len(df_clean) < 3:
+                continue
+            
+            # Obtener grupos
+            groups = df_clean[col].unique()
+            
+            # Necesitamos al menos 2 grupos
+            if len(groups) < 2:
+                continue
+            
+            # Crear lista de arrays con los valores del target para cada grupo
+            group_data = []
+            for group in groups:
+                group_values = df_clean[df_clean[col] == group][target_col].values
+                if len(group_values) > 0:
+                    group_data.append(group_values)
+            
+            # Verificar que tenemos al menos 2 grupos con datos
+            if len(group_data) < 2:
+                continue
+            
+            # Realizar test ANOVA
+            f_statistic, p_value = stats.f_oneway(*group_data)
+            
+            # Si es significativo, agregarlo a la lista
+            if p_value < pvalue:
+                significant_features.append(col)
+                
+        except Exception as e:
+            continue
+    
+    # Si no hay features significativas, informar y retornar lista vacía
+    if len(significant_features) == 0:
+        print(f"Advertencia: Ninguna de las columnas categóricas tiene relación estadísticamente significativa con '{target_col}' al nivel de significación {pvalue}.")
+        return []
+    
+    # Visualizar las features significativas
+    n_features = len(significant_features)
+    
+    if with_individual_plot:
+        # Crear un plot individual para cada feature
+        for col in significant_features:
+            plt.figure(figsize=(10, 6))
+            
+            # Eliminar valores nulos
+            df_clean = df[[col, target_col]].dropna()
+            
+            # Obtener categorías únicas
+            categories = sorted(df_clean[col].unique())
+            
+            # Crear histogramas agrupados
+            for category in categories:
+                data = df_clean[df_clean[col] == category][target_col]
+                plt.hist(data, alpha=0.6, label=str(category), bins=20)
+            
+            plt.xlabel(target_col)
+            plt.ylabel('Frecuencia')
+            plt.title(f'Distribución de {target_col} por {col}')
+            plt.legend(title=col)
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+    
+    else:
+        # Crear subplots
+        n_cols = min(3, n_features)
+        n_rows = (n_features + n_cols - 1) // n_cols
+        
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 5 * n_rows))
+        
+        # Asegurar que axes sea siempre un array
+        if n_features == 1:
+            axes = np.array([axes])
+        else:
+            axes = axes.flatten() if n_features > 1 else np.array([axes])
+        
+        for idx, col in enumerate(significant_features):
+            ax = axes[idx]
+            
+            # Eliminar valores nulos
+            df_clean = df[[col, target_col]].dropna()
+            
+            # Obtener categorías únicas
+            categories = sorted(df_clean[col].unique())
+            
+            # Crear histogramas agrupados
+            for category in categories:
+                data = df_clean[df_clean[col] == category][target_col]
+                ax.hist(data, alpha=0.6, label=str(category), bins=20)
+            
+            ax.set_xlabel(target_col)
+            ax.set_ylabel('Frecuencia')
+            ax.set_title(f'Distribución de {target_col} por {col}')
+            ax.legend(title=col, fontsize=8)
+            ax.grid(True, alpha=0.3)
+        
+        # Ocultar ejes sobrantes
+        for idx in range(n_features, len(axes)):
+            axes[idx].axis('off')
+        
+        plt.tight_layout()
+        plt.show()
+    
+    return significant_features
