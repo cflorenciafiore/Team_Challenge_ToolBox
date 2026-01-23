@@ -401,42 +401,42 @@ def get_features_cat_regression(df, target_col='', pvalue=0.05):
     list: Lista con los nombres de las columnas categóricas que tienen relación estadísticamente significativa 
           con target_col. Retorna None si hay errores en los argumentos de entrada.
     """
-    # Check 1: Verificar que df es un DataFrame
+    #  Verificar que df es un DataFrame
     if not isinstance(df, pd.DataFrame):
         print("Error: El primer argumento debe ser un pandas DataFrame.")
         return None
     
-    # Check 2: Verificar que df no está vacío
+    #  Verificar que df no está vacío
     if df.empty:
         print("Error: El DataFrame está vacío.")
         return None
     
-    # Check 3: Verificar que target_col es un string
+    #  Verificar que target_col es un string
     if not isinstance(target_col, str):
         print("Error: El argumento 'target_col' debe ser un string.")
         return None
     
-    # Check 4: Verificar que target_col no está vacío
+    #  Verificar que target_col no está vacío
     if target_col == '':
         print("Error: El argumento 'target_col' no puede estar vacío.")
         return None
     
-    # Check 5: Verificar que target_col existe en el DataFrame
+    # : Verificar que target_col existe en el DataFrame
     if target_col not in df.columns:
         print(f"Error: La columna '{target_col}' no existe en el DataFrame.")
         return None
     
-    # Check 6: Verificar que target_col es numérica
+    #  Verificar que target_col es numérica
     if df[target_col].dtype not in ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
         print(f"Error: La columna '{target_col}' debe ser numérica (continua o discreta con alta cardinalidad).")
         return None
     
-    # Check 7: Verificar que pvalue está en el rango correcto
+    #  Verificar que pvalue está en el rango correcto
     if not isinstance(pvalue, (int, float)) or pvalue <= 0 or pvalue >= 1:
         print("Error: El argumento 'pvalue' debe ser un número entre 0 y 1 (exclusivo).")
         return None
     
-    # Check 8: Verificar que target_col tiene suficiente variabilidad (no es constante)
+    #  Verificar que target_col tiene suficiente variabilidad (no es constante)
     if df[target_col].nunique() <= 1:
         print(f"Error: La columna '{target_col}' debe tener más de un valor único para realizar análisis de regresión.")
         return None
@@ -545,52 +545,52 @@ def plot_features_cat_regression(df, target_col='', columns=[], pvalue=0.05, wit
     list: Lista con los nombres de las columnas categóricas que cumplen el criterio de significación estadística.
           Retorna None si hay errores en los argumentos de entrada.
     """
-    # Check 1: Verificar que df es un DataFrame
+    #  Verificar que df es un DataFrame
     if not isinstance(df, pd.DataFrame):
         print("Error: El primer argumento debe ser un pandas DataFrame.")
         return None
     
-    # Check 2: Verificar que df no está vacío
+    #  Verificar que df no está vacío
     if df.empty:
         print("Error: El DataFrame está vacío.")
         return None
     
-    # Check 3: Verificar que target_col es un string
+    #  Verificar que target_col es un string
     if not isinstance(target_col, str):
         print("Error: El argumento 'target_col' debe ser un string.")
         return None
     
-    # Check 4: Verificar que target_col no está vacío
+    #  Verificar que target_col no está vacío
     if target_col == '':
         print("Error: El argumento 'target_col' no puede estar vacío.")
         return None
     
-    # Check 5: Verificar que target_col existe en el DataFrame
+    #  Verificar que target_col existe en el DataFrame
     if target_col not in df.columns:
         print(f"Error: La columna '{target_col}' no existe en el DataFrame.")
         return None
     
-    # Check 6: Verificar que target_col es numérica
+    #  Verificar que target_col es numérica
     if df[target_col].dtype not in ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
         print(f"Error: La columna '{target_col}' debe ser numérica (continua o discreta con alta cardinalidad).")
         return None
     
-    # Check 7: Verificar que columns es una lista
+    #  Verificar que columns es una lista
     if not isinstance(columns, list):
         print("Error: El argumento 'columns' debe ser una lista.")
         return None
     
-    # Check 8: Verificar que pvalue está en el rango correcto
+    #  Verificar que pvalue está en el rango correcto
     if not isinstance(pvalue, (int, float)) or pvalue <= 0 or pvalue >= 1:
         print("Error: El argumento 'pvalue' debe ser un número entre 0 y 1 (exclusivo).")
         return None
     
-    # Check 9: Verificar que with_individual_plot es booleano
+    #  Verificar que with_individual_plot es booleano
     if not isinstance(with_individual_plot, bool):
         print("Error: El argumento 'with_individual_plot' debe ser un booleano (True o False).")
         return None
     
-    # Check 10: Verificar que target_col tiene suficiente variabilidad
+    #  Verificar que target_col tiene suficiente variabilidad
     if df[target_col].nunique() <= 1:
         print(f"Error: La columna '{target_col}' debe tener más de un valor único para realizar análisis de regresión.")
         return None
@@ -609,7 +609,7 @@ def plot_features_cat_regression(df, target_col='', columns=[], pvalue=0.05, wit
                 if df[col].nunique() <= 10:
                     columns.append(col)
     
-    # Check 11: Verificar que todas las columnas en 'columns' existen en el DataFrame
+    #  Verificar que todas las columnas en 'columns' existen en el DataFrame
     for col in columns:
         if col not in df.columns:
             print(f"Error: La columna '{col}' especificada en 'columns' no existe en el DataFrame.")
