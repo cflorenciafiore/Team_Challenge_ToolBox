@@ -99,7 +99,7 @@ def main():
         if set(res["nombre_variable"]) != set(df.columns):
             fail("tipifica_variables: la columna nombre_variable debe contener TODOS los nombres de columnas del df.")
 
-        allowed = {"Binaria", "Categórica", "Numerica Continua", "Numerica Discreta"}
+        allowed = {"Binaria", "Categorica", "Numerica Continua", "Numerica Discreta"}
         if not set(res["tipo_sugerido"]).issubset(allowed):
             fail(f"tipifica_variables: tipo_sugerido solo puede contener {allowed}.")
 
@@ -316,8 +316,8 @@ def main():
 
     # ===== Ejecutar tests =====
     run_test("describe_df: estructura y rangos", test_describe_df_structure)
-    #run_test("tipifica_variables: estructura", test_tipifica_variables_structure)
-    #run_test("tipifica_variables: sanity check Telco", test_tipifica_variables_telco_sanity)
+    run_test("tipifica_variables: estructura", test_tipifica_variables_structure)
+    run_test("tipifica_variables: sanity check Telco", test_tipifica_variables_telco_sanity)
     run_test("get_features_num_regression: básico", test_get_features_num_regression_basic)
     run_test("get_features_num_regression: checks de entradas", test_get_features_num_regression_checks)
     run_test("plot_features_num_regression: básico", test_plot_features_num_regression_basic)
