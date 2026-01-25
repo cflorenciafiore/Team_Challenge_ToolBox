@@ -28,14 +28,14 @@ Este repositorio incluye un **toolbox en Python** con utilidades para análisis 
 
 
 ## Estructura del repositorio
-
+```
 .
 ├── toolbox.py
 ├── run_test.py
 ├── README.md
 └── data
     └──WA_Fn-UseC_-Telco-Customer-Churn.csv
-
+```
 
 ## Uso
 
