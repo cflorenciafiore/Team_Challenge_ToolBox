@@ -7,10 +7,10 @@ Este repositorio incluye un **toolbox en Python** con utilidades para análisis 
 ### Funciones principales (toolbox)
 - **`describe_df(df)`**
 - **`tipifica_variables(df, umbral_categoria, umbral_continua)`**
-- **`get_features_num_regression(df, target_col, umbral_corr=0.5, pvalue=None)`**
-- **`plot_features_num_regression(df, target_col="", columns=[], umbral_corr=0, pvalue=None)`**
-- **`get_features_cat_regression(df, target_col="", pvalue=0.05)`**
-- **`plot_features_cat_regression(df, target_col="", columns=[], pvalue=0.05, with_individual_plot=False)`**
+- **`get_features_num_regression(df, target_col, umbral_corr, pvalue)`**
+- **`plot_features_num_regression(df, target_col, columns, umbral_corr, pvalue)`**
+- **`get_features_cat_regression(df, target_col, pvalue)`**
+- **`plot_features_cat_regression(df, target_col, columns, pvalue, with_individual_plot)`**
 
 ### Script de pruebas
 - **`run_test.py`**: ejecuta tests/validaciones del toolbox.
