@@ -59,21 +59,21 @@ df = pd.read_csv("data.csv")
 print(describe_df(df))
 
 # Tipificación
-print(tipifica_variables(df, umbral_categoria=20, umbral_continua=50.0))
+print(tipifica_variables(df, umbral_categoria=10, umbral_continua=15.0))
 
 # Selección numéricas por correlación
-num_feats = get_features_num_regression(df, target_col="target", umbral_corr=0.5, pvalue=0.05)
+num_feats = get_features_num_regression(df, target_col=target, umbral_corr=0.5, pvalue=None)
 print(num_feats)
 
 # Pairplots (máx 5 columnas por bloque)
-plot_features_num_regression(df, target_col="target", columns=num_feats, umbral_corr=0.5, pvalue=0.05)
+plot_features_num_regression(df, target_col="target", columns=[], umbral_corr=0.1, pvalue=None)
 
-# Selección categóricas por ANOVA
+# Selección categóricas
 cat_feats = get_features_cat_regression(df, target_col="target", pvalue=0.05)
 print(cat_feats)
 
 # Visualización categóricas
-plot_features_cat_regression(df, target_col="target", columns=cat_feats, pvalue=0.05, with_individual_plot=False)
+plot_features_cat_regression(df, target_col="target", columns=[], pvalue=0.05, with_individual_plot=False)
 ```
 
 ## Ejecutar tests (run_test)
