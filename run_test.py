@@ -54,10 +54,10 @@ def run_test(name, fn):
 
 
 def main():
-    # 0- Cargar dataset
+    # 0. Cargar dataset
     df = pd.read_csv(DATA_PATH)
 
-    # 1- TESTS describe_df
+    # 1. Tests: describe_df
     def test_describe_df_structure():
         res = describe_df(df)
         assert_is_df(res, "describe_df(df)")
@@ -86,7 +86,7 @@ def main():
             fail("describe_df: UNIQUE_VALUES no puede ser negativo.")
 
         print(res)
-    # 2- TESTS tipifica_variables
+    # 2. Tests: tipifica_variables
     def test_tipifica_variables_structure():
         res = tipifica_variables(df, umbral_categoria=10, umbral_continua=15.0)
         assert_is_df(res, "tipifica_variables(df,umbral_categoria, umbral_continua)")
@@ -109,21 +109,21 @@ def main():
         # Esto es muy adhoc y porque conocemos de antemano el dataframe, por eso se hace un sanity check para ver si realmente la función de tipicar es correcta también en su implementación
         res = tipifica_variables(df, umbral_categoria=10, umbral_continua=15.0)
 
-        # Las siguientes columnas son binarias:
+        # Las siguientes columnas son binarias
         expected_binary = {"Churn", "Partner", "Dependents", "PhoneService"}
         # Las cogemos del dataset
         present_binary = expected_binary.intersection(set(df.columns))
         if present_binary:
-            # cogemos el valor que se le ha inyectado
+            # Cogemos el valor que se le ha inyectado
             sub = res.set_index("nombre_variable").loc[list(present_binary), "tipo_sugerido"]
-            # No lo hacemos muy estricto y dejamos que puedan salir categóricas también, damos algo de manga,
-            # pero lo normal es "Binaria". Pero si es Numerica continua o discreta no lo pasa el test
+            # Para variables binarias, no lo hacemos muy estricto y dejamos que puedan salir como categóricas también, damos algo de manga
+            # Pero para variables numéricas continuas o discretas, sí que no dejamos que pasen como categóricas, dará error
             if (sub == "Numerica Continua").any():
                 fail("tipifica_variables: una variable binaria no debería ser 'Numerica Continua'.")
             if (sub == "Numerica Discreta").any():
                 fail("tipifica_variables: una variable binaria no debería ser 'Numerica Discreta'.")
 
-    # 3- TESTS get_features_num_regression
+    # 3. Tests: get_features_num_regression
     def test_get_features_num_regression_basic():
         # Elegimos un target numérico razonable en Telco:
         target = "MonthlyCharges"
@@ -166,7 +166,7 @@ def main():
             if out is not None:
                 fail("get_features_num_regression: si target_col no es numérica, debe retornar None.")
 
-    # 4- TESTS plot_features_num_regression
+    # 4. Tests: plot_features_num_regression
     def test_plot_features_num_regression_basic():
         target = "MonthlyCharges"
 
@@ -222,7 +222,7 @@ def main():
             if out is not None:
                 fail("plot_features_num_regression: target no numérico debe retornar None.")
     
-    # 5- TESTS get_features_cat_regression
+    # 5. Tests: get_features_cat_regression
     def test_get_features_cat_regression_basic():
         target = "MonthlyCharges"
 
@@ -258,7 +258,7 @@ def main():
             if out is not None:
                 fail("get_features_cat_regression: target no numérico debe retornar None.")
     
-    # 6- TESTS plot_features_cat_regression
+    # 6. Tests: plot_features_cat_regression
     def test_plot_features_cat_regression_basic():
         target = "MonthlyCharges"
 
