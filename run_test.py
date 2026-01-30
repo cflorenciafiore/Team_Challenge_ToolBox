@@ -4,7 +4,7 @@ warnings.filterwarnings("ignore")
 
 import pandas as pd
 import numpy as np
-from toolbox import (
+from toolbox_ML import (
     describe_df,
     tipifica_variables,
     get_features_num_regression,
